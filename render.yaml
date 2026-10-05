@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: 3estrellas-catalogo
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
