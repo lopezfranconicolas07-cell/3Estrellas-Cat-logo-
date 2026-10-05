@@ -32,8 +32,31 @@ main{max-width:1100px;margin:auto;padding:24px 16px 90px}.hero{padding:20px 0 26
 <footer>3Estrellas · La Paz, Mendoza · Catálogo online</footer>
 <script>
 const WHATSAPP = "5492634250010";
+const SUPABASE_URL = "https://pwiakszymoicfqxvkchm.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_i0xPBsdCEkHpyNSrPlpTDw_Ku6wrXU5";
 
-const products = [
+async function loadProductsFromSupabase() {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,name,category,installments,transfer_price,size,stock,image&order=created_at.asc`, {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+      }
+    });
+    if (!response.ok) throw new Error(`Supabase ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error("Respuesta inválida");
+    products = data.map(p => ({ ...p, transferPrice: p.transfer_price ?? "" }));
+    categories = ["Todos", ...new Set(products.map(p => p.category).filter(Boolean))];
+    renderFilters();
+    render();
+  } catch (error) {
+    console.warn("No se pudo cargar Supabase; se usa el catálogo de respaldo.", error);
+  }
+}
+
+
+const fallbackProducts = [
   {
     "id": 1791051918686,
     "name": "Boxy Araña",
@@ -376,7 +399,8 @@ const products = [
   }
 ];
 
-const categories = ["Todos", ...new Set(products.map(p => p.category))];
+let products = fallbackProducts;
+let categories = ["Todos", ...new Set(products.map(p => p.category))];
 let selected = "Todos";
 let searchTerm = "";
 
@@ -462,5 +486,6 @@ search.addEventListener("input", event => {
 
 renderFilters();
 render();
+loadProductsFromSupabase();
 </script>
 </body></html>
