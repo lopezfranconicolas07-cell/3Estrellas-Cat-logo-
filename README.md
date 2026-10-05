@@ -1,16 +1,32 @@
-# 3Estrellas — Catálogo Web
+# 3Estrellas — catálogo + administración
 
-Paquete listo para subir a GitHub y publicar como Static Site en Render.
+## Publicación
+Este repositorio contiene `index.html` (catálogo público), `admin.html` (panel privado) y `render.yaml`.
 
-## Archivos
-- `index.html` — catálogo.
-- `render.yaml` — configuración de publicación.
+Render debe publicar la raíz (`.`) como sitio estático.
 
-## Publicar
-1. Crear un repositorio en GitHub llamado `3estrellas-catalogo`.
-2. Subir `index.html` y `render.yaml` a la raíz.
-3. En Render elegir **New → Static Site** y conectar ese repositorio.
-4. Dejar vacío **Build Command** y usar `.` como **Publish Directory** si Render lo solicita.
-5. Crear el sitio.
+## Panel de administración
+Abrir `/admin.html`.
 
-El catálogo consulta `public.products` de Supabase. Si Supabase no responde, muestra el catálogo incorporado como respaldo.
+El panel usa Supabase Auth. Solo usuarios cuyo `app_metadata.role` sea `admin` pueden crear, editar, eliminar productos o subir fotos.
+
+### Crear el usuario administrador
+1. En Supabase: Authentication → Users → Add user.
+2. Crear un usuario con el email y contraseña que quieras usar para el panel.
+3. Luego, en Supabase SQL Editor, ejecutar:
+
+```sql
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+where email = 'TU_EMAIL';
+```
+
+Reemplazá `TU_EMAIL` por el email exacto del usuario creado.
+
+### Qué permite el panel
+- Crear productos.
+- Editar nombre, categoría, cuotas, precio, talle y stock.
+- Subir imágenes directamente a Supabase Storage.
+- Eliminar productos.
+
+El catálogo público sigue leyendo los productos desde `public.products`.

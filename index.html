@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>3Estrellas — Catálogo</title>
-<meta name="description" content="Catálogo online de 3Estrellas — ropa urbana, boxy, baggy y streetwear.">
 <style>
 :root{--bg:#0d0b10;--card:#17131c;--text:#f5f3f7;--muted:#aaa2b2;--accent:#8b5cf6;--line:#2a2330}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
@@ -34,7 +33,7 @@ main{max-width:1100px;margin:auto;padding:24px 16px 90px}.hero{padding:20px 0 26
 <script>
 const WHATSAPP = "5492634250010";
 
-const fallbackProducts = [
+const products = [
   {
     "id": 1791051918686,
     "name": "Boxy Araña",
@@ -377,43 +376,8 @@ const fallbackProducts = [
   }
 ];
 
-let products = fallbackProducts;
-
-// Supabase (publishable key): se usa para cargar los productos publicados.
-const SUPABASE_URL = "https://pwiakszymoicfqxvkchm.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_i0xPBsdCEkHpyNSrPlpTDw_Ku6wrXU5";
-
+const categories = ["Todos", ...new Set(products.map(p => p.category))];
 let selected = "Todos";
-let catalogCategories = ["Todos", ...new Set(products.map(p => p.category))];
-
-async function loadProductsFromSupabase() {
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,name,category,installments,transfer_price,size,stock,image&order=created_at.asc`, {
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-      }
-    });
-    if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
-    const rows = await response.json();
-    products = rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      category: row.category,
-      installments: row.installments || "",
-      transferPrice: row.transfer_price || "",
-      size: row.size || "",
-      stock: row.stock !== false,
-      image: row.image || ""
-    }));
-    catalogCategories = ["Todos", ...new Set(products.map(p => p.category))];
-  } catch (error) {
-    console.warn("Supabase no respondió; se usa el catálogo de respaldo.", error);
-  }
-  renderFilters();
-  render();
-}
-
 let searchTerm = "";
 
 const filtersEl = document.querySelector("#filters");
@@ -435,7 +399,7 @@ function whatsappLink(product) {
 }
 
 function renderFilters() {
-  filtersEl.innerHTML = catalogCategories.map(category => `
+  filtersEl.innerHTML = categories.map(category => `
     <button type="button"
       class="${category === selected ? "active" : ""}"
       data-category="${escapeHTML(category)}">${escapeHTML(category)}</button>
@@ -476,7 +440,7 @@ function render() {
   `).join("") || '<div class="empty">No hay productos en esta categoría.</div>';
 }
 
-filtersEl.innerHTML = catalogCategories.map(category => `
+filtersEl.innerHTML = categories.map(category => `
   <button type="button"
     class="${category === selected ? "active" : ""}"
     data-category="${escapeHTML(category)}">${escapeHTML(category)}</button>
@@ -498,6 +462,5 @@ search.addEventListener("input", event => {
 
 renderFilters();
 render();
-loadProductsFromSupabase();
 </script>
 </body></html>
