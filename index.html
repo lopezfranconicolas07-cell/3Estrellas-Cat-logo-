@@ -110,7 +110,8 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 15px;bor
     </div>
   </section>
 </div>
-\n<footer>3Estrellas · La Paz, Mendoza · Catálogo online</footer>
+
+<footer>3Estrellas · La Paz, Mendoza · Catálogo online</footer>
 
 <script>
 const WHATSAPP = "5492634250010";
@@ -227,7 +228,8 @@ document.querySelector("#threee-product-modal").addEventListener("click", event 
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") closeProductDetail();
 });
-\nfiltersEl.addEventListener("click", event => {
+
+filtersEl.addEventListener("click", event => {
   const button = event.target.closest("button[data-category]");
   if (!button) return;
   selected = button.dataset.category;
