@@ -109,6 +109,13 @@
     }).format(value || 0);
   }
 
+  function installmentInfo(item) {
+    const countMatch = String(item.installmentText || "").match(/(\\d+)\\s*cuotas?/i);
+    const count = countMatch ? Number(countMatch[1]) : 3;
+    const perInstallment = moneyNumber(item.installmentText);
+    return { count, perInstallment, cardTotal: perInstallment * count };
+  }
+
   function getProductFromCard(card) {
     const name = cleanText(card.querySelector(".name")?.textContent);
     const category = cleanText(card.querySelector(".cat")?.textContent);
@@ -200,6 +207,10 @@
       #threee-cart-panel .threee-line img{width:64px;height:76px;object-fit:cover;border-radius:9px;background:#29222f}
       #threee-cart-panel .threee-details{flex:1;min-width:0}
       #threee-cart-panel .threee-details strong{display:block;margin-bottom:4px}
+      #threee-cart-panel .threee-price-card{font-size:13px;color:#fff;margin-top:7px}
+      #threee-cart-panel .threee-price-card strong{display:inline;color:#c4b5fd}
+      #threee-cart-panel .threee-price-transfer{font-size:13px;color:#ddd;margin-top:4px}
+      #threee-cart-panel .threee-price-transfer strong{display:inline;color:#86efac}
       #threee-cart-panel .threee-qty{display:flex;align-items:center;gap:10px;margin-top:8px}
       #threee-cart-panel .threee-qty button{padding:5px 11px;border-radius:8px;background:#29222f;color:#fff;border:1px solid #51445e}
       #threee-cart-panel .threee-field{display:block;margin-top:12px;font-size:13px;color:#ddd}
@@ -303,8 +314,9 @@
         ${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : ""}
         <div class="threee-details">
           <strong>${escapeHtml(item.name)}</strong>
-          <div class="threee-muted">${escapeHtml(item.size)} · ${escapeHtml(item.installmentText)}</div>
-          <div class="threee-muted">Transferencia: ${escapeHtml(item.transferText)}</div>
+          <div class="threee-price-card">Tarjeta: <strong>${formatMoney(installmentInfo(item).cardTotal)}</strong> · ${installmentInfo(item).count} cuotas de ${formatMoney(installmentInfo(item).perInstallment)}</div>
+          <div class="threee-price-transfer">Transferencia o efectivo: <strong>${escapeHtml(item.transferText)}</strong></div>
+          <div class="threee-muted">Talle: ${escapeHtml(item.size)}</div>
           <div class="threee-qty">
             <button type="button" data-cart-action="minus" data-id="${escapeHtml(item.id)}">−</button>
             <span>${item.quantity}</span>
@@ -315,9 +327,12 @@
       </div>`).join("");
 
     const transferTotal = cart.reduce((sum, item) => sum + item.transferPrice * item.quantity, 0);
+    const cardTotal = cart.reduce((sum, item) => sum + installmentInfo(item).cardTotal * item.quantity, 0);
     summaryEl.innerHTML = `
-      <div class="threee-total"><span>Total por transferencia/efectivo</span><span>${formatMoney(transferTotal)}</span></div>
-      <div class="threee-muted">El importe de Mercado Pago se confirma al preparar el link de pago. Los precios de transferencia mostrados son los publicados en el catálogo.</div>`;
+      <div class="threee-total"><span>Total con tarjeta</span><span>${formatMoney(cardTotal)}</span></div>
+      <div class="threee-muted" style="text-align:right;margin-top:-9px">En 3 cuotas sin interés, según cada producto.</div>
+      <div class="threee-total"><span>Total por transferencia o efectivo</span><span>${formatMoney(transferTotal)}</span></div>
+      <div class="threee-muted">Elegí la forma de pago al completar el pedido. Los importes se muestran por separado para que puedas compararlos.</div>`;
 
     itemsEl.querySelectorAll("[data-cart-action]").forEach(button => {
       button.addEventListener("click", () => {
@@ -345,9 +360,11 @@
 
     const data = new FormData(form);
     const transferTotal = cart.reduce((sum, item) => sum + item.transferPrice * item.quantity, 0);
-    const lines = cart.map(item =>
-      `• ${item.quantity} x ${item.name} | Talle: ${item.size}\n  ${item.installmentText}\n  Transferencia: ${item.transferText}`
-    ).join("\n");
+    const cardTotal = cart.reduce((sum, item) => sum + installmentInfo(item).cardTotal * item.quantity, 0);
+    const lines = cart.map(item => {
+      const payment = installmentInfo(item);
+      return \`• \${item.quantity} x \${item.name} | Talle: \${item.size}\\n  Tarjeta: \${formatMoney(payment.cardTotal)} (\${payment.count} cuotas de \${formatMoney(payment.perInstallment)})\\n  Transferencia o efectivo: \${item.transferText}\`;
+    }).join("\\n");
 
     const consent = form.elements.recoveryConsent?.checked === true;
     const recoveryContact = {
@@ -360,7 +377,8 @@
       "",
       lines,
       "",
-      `TOTAL por transferencia/efectivo: ${formatMoney(transferTotal)}`,
+      `TOTAL con tarjeta: ${formatMoney(cardTotal)} (3 cuotas sin interés)`,
+      `TOTAL por transferencia o efectivo: ${formatMoney(transferTotal)}`,
       "",
       "DATOS DEL CLIENTE",
       `Nombre: ${data.get("customerName")}`,
