@@ -110,7 +110,7 @@
   }
 
   function installmentInfo(item) {
-    const countMatch = String(item.installmentText || "").match(/(\\d+)\\s*cuotas?/i);
+    const countMatch = String(item.installmentText || "").match(/(\d+)\s*cuotas?/i);
     const count = countMatch ? Number(countMatch[1]) : 3;
     const perInstallment = moneyNumber(item.installmentText);
     return { count, perInstallment, cardTotal: perInstallment * count };
