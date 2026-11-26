@@ -110,9 +110,12 @@
   }
 
   function installmentInfo(item) {
-    const countMatch = String(item.installmentText || "").match(/(\d+)\s*cuotas?/i);
+    const text = String(item.installmentText || "");
+    const countMatch = text.match(/(\d+)\s*cuotas?/i);
     const count = countMatch ? Number(countMatch[1]) : 3;
-    const perInstallment = moneyNumber(item.installmentText);
+    // Tomar únicamente el importe posterior a "de", sin sumar el número de cuotas.
+    const priceMatch = text.match(/cuotas?\s*de\s*\$?\s*([\d.,]+)/i);
+    const perInstallment = priceMatch ? moneyNumber(priceMatch[1]) : 0;
     return { count, perInstallment, cardTotal: perInstallment * count };
   }
 
