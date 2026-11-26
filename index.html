@@ -42,6 +42,33 @@ main{max-width:1100px;margin:auto;padding:16px 16px 90px}
 .stock.unavailable{color:#fca5a5}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 15px;border-top:1px solid var(--line)}
 @media(min-width:750px){.grid{grid-template-columns:repeat(3,1fr)}.hero{padding-top:30px}}
+
+/* Ficha de producto */
+.product .photo{cursor:zoom-in;position:relative}
+.product .photo:after{content:"VER DETALLE";position:absolute;right:8px;bottom:8px;background:#050509d9;border:1px solid #ffffff35;border-radius:3px;padding:6px 8px;color:#fff;font-size:9px;font-weight:800;letter-spacing:1px}
+.product .detail-button{width:100%;margin-top:8px;background:transparent;border:1px solid #55506d;color:#e8e5f2;border-radius:4px;padding:10px;font-size:11px;font-weight:800;letter-spacing:.5px}
+#threee-product-modal{position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;padding:14px;background:#000d;backdrop-filter:blur(8px)}
+#threee-product-modal.open{display:flex}
+#threee-product-dialog{position:relative;width:min(100%,850px);max-height:94vh;overflow:auto;background:#101018;border:1px solid #343044;border-radius:8px;box-shadow:0 24px 90px #000b;display:grid;grid-template-columns:1fr;}
+#threee-product-close{position:absolute;top:10px;right:10px;z-index:2;width:38px;height:38px;border-radius:50%;background:#08080ddd;border:1px solid #ffffff40;color:#fff;font-size:22px;padding:0}
+#threee-product-image-wrap{background:#08080d;min-height:240px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#threee-product-image{display:block;width:100%;max-height:68vh;object-fit:contain}
+#threee-product-no-image{padding:70px 20px;color:#8d879b;text-align:center}
+#threee-product-content{padding:22px}
+#threee-product-category{font-size:10px;letter-spacing:2px;color:#91a4ff;text-transform:uppercase;font-weight:800}
+#threee-product-name{font-size:clamp(23px,5vw,34px);line-height:1.05;margin:9px 0 17px}
+#threee-product-price{font-size:23px;font-weight:900}
+#threee-product-transfer{font-size:16px;color:#c4b5fd;margin-top:5px}
+#threee-product-transfer small{color:#aaa2b2;font-size:11px}
+#threee-product-size{margin-top:17px;padding:12px;border:1px solid #343044;border-radius:4px;color:#ddd}
+#threee-product-stock{font-size:12px;margin:14px 0;color:#86efac}
+#threee-product-stock.unavailable{color:#fca5a5}
+#threee-product-description{color:#b7b7cc;font-size:13px;line-height:1.6;margin:14px 0}
+#threee-product-actions{display:grid;gap:9px;margin-top:20px}
+#threee-product-actions a,#threee-product-actions button{display:block;width:100%;text-align:center;text-decoration:none;border-radius:4px;padding:14px;font-size:11px;font-weight:900;letter-spacing:.5px}
+#threee-product-add{background:#254bff;border:0;color:#fff}
+#threee-product-whatsapp{background:transparent;border:1px solid #55506d;color:#fff}
+@media(min-width:650px){#threee-product-dialog{grid-template-columns:1.05fr .95fr}#threee-product-image-wrap{min-height:500px}#threee-product-image{max-height:82vh}#threee-product-content{align-self:center;padding:34px}}
 </style>
 </head>
 <body>
@@ -66,7 +93,24 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 15px;bor
   <section class="grid" id="catalog" aria-live="polite"></section>
 </main>
 
-<footer>3Estrellas · La Paz, Mendoza · Catálogo online</footer>
+
+<div id="threee-product-modal" aria-hidden="true">
+  <section id="threee-product-dialog" role="dialog" aria-modal="true" aria-labelledby="threee-product-name">
+    <button id="threee-product-close" type="button" aria-label="Cerrar ficha">×</button>
+    <div id="threee-product-image-wrap"><div id="threee-product-no-image">FOTO DEL PRODUCTO</div></div>
+    <div id="threee-product-content">
+      <div id="threee-product-category"></div>
+      <h2 id="threee-product-name"></h2>
+      <div id="threee-product-price"></div>
+      <div id="threee-product-transfer"></div>
+      <div id="threee-product-size"></div>
+      <div id="threee-product-stock"></div>
+      <p id="threee-product-description">Una prenda seleccionada por 3Estrellas. Consultanos si necesitás más información sobre el calce o los detalles.</p>
+      <div id="threee-product-actions"></div>
+    </div>
+  </section>
+</div>
+\n<footer>3Estrellas · La Paz, Mendoza · Catálogo online</footer>
 
 <script>
 const WHATSAPP = "5492634250010";
@@ -109,10 +153,10 @@ function render() {
   });
 
   catalogEl.innerHTML = filtered.map(product => `
-    <article class="product">
-      <div class="photo">
+    <article class="product" data-product-id="${escapeHTML(product.id)}">
+      <button class="photo" type="button" data-open-product aria-label="Ver detalle de ${escapeHTML(product.name)}">
         ${product.image ? `<img src="${escapeHTML(product.image)}" alt="${escapeHTML(product.name)}" loading="lazy" onerror="this.parentElement.textContent='Foto no disponible';">` : "FOTO DEL PRODUCTO"}
-      </div>
+      </button>
       <div class="info">
         <div class="cat">${escapeHTML(product.category)}</div>
         <div class="name">${escapeHTML(product.name)}</div>
@@ -121,12 +165,69 @@ function render() {
         <div class="size">Talle: ${escapeHTML(product.size)}</div>
         <div class="stock ${product.stock ? "" : "unavailable"}">${product.stock ? "● Disponible" : "● Sin stock"}</div>
         ${product.stock ? `<a href="${whatsappLink(product)}" target="_blank" rel="noopener noreferrer"><button class="buy" type="button">Consultar por WhatsApp</button></a>` : ""}
+        <button class="detail-button" type="button" data-open-product>VER FICHA DEL PRODUCTO</button>
       </div>
     </article>
   `).join("") || '<div class="empty">No hay productos en esta categoría.</div>';
 }
 
-filtersEl.addEventListener("click", event => {
+
+function openProductDetail(product, card) {
+  if (!product) return;
+  const modal = document.querySelector("#threee-product-modal");
+  const imageWrap = document.querySelector("#threee-product-image-wrap");
+  imageWrap.innerHTML = product.image
+    ? `<img id="threee-product-image" src="${escapeHTML(product.image)}" alt="${escapeHTML(product.name)}">`
+    : '<div id="threee-product-no-image">FOTO DEL PRODUCTO</div>';
+  document.querySelector("#threee-product-category").textContent = product.category || "3ESTRELLAS";
+  document.querySelector("#threee-product-name").textContent = product.name || "Producto";
+  document.querySelector("#threee-product-price").textContent = product.installments || "";
+  document.querySelector("#threee-product-transfer").innerHTML = `${escapeHTML(product.transferPrice ?? product.transfer_price ?? "")} <small>por transferencia</small>`;
+  document.querySelector("#threee-product-size").textContent = `Talle: ${product.size || "Consultar"}`;
+  const stock = document.querySelector("#threee-product-stock");
+  stock.textContent = product.stock ? "● Disponible" : "● Sin stock";
+  stock.classList.toggle("unavailable", !product.stock);
+  const actions = document.querySelector("#threee-product-actions");
+  actions.innerHTML = product.stock
+    ? '<button id="threee-product-add" type="button">AGREGAR AL CARRITO</button><a id="threee-product-whatsapp" target="_blank" rel="noopener noreferrer">CONSULTAR POR WHATSAPP</a>'
+    : '<a id="threee-product-whatsapp" target="_blank" rel="noopener noreferrer">CONSULTAR DISPONIBILIDAD</a>';
+  const whatsapp = document.querySelector("#threee-product-whatsapp");
+  whatsapp.href = whatsappLink(product);
+  document.querySelector("#threee-product-add")?.addEventListener("click", () => {
+    const addButton = card?.querySelector(".threee-add");
+    if (addButton) addButton.click();
+    closeProductDetail();
+  });
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  document.querySelector("#threee-product-close").focus();
+}
+
+function closeProductDetail() {
+  const modal = document.querySelector("#threee-product-modal");
+  if (!modal) return;
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+}
+
+catalogEl.addEventListener("click", event => {
+  const trigger = event.target.closest("[data-open-product]");
+  if (!trigger) return;
+  const card = trigger.closest(".product");
+  const product = products.find(item => String(item.id) === String(card?.dataset.productId));
+  openProductDetail(product, card);
+});
+
+document.querySelector("#threee-product-close").addEventListener("click", closeProductDetail);
+document.querySelector("#threee-product-modal").addEventListener("click", event => {
+  if (event.target.id === "threee-product-modal") closeProductDetail();
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeProductDetail();
+});
+\nfiltersEl.addEventListener("click", event => {
   const button = event.target.closest("button[data-category]");
   if (!button) return;
   selected = button.dataset.category;
