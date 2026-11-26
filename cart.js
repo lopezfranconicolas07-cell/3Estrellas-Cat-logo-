@@ -363,8 +363,8 @@
     const cardTotal = cart.reduce((sum, item) => sum + installmentInfo(item).cardTotal * item.quantity, 0);
     const lines = cart.map(item => {
       const payment = installmentInfo(item);
-      return \`• \${item.quantity} x \${item.name} | Talle: \${item.size}\\n  Tarjeta: \${formatMoney(payment.cardTotal)} (\${payment.count} cuotas de \${formatMoney(payment.perInstallment)})\\n  Transferencia o efectivo: \${item.transferText}\`;
-    }).join("\\n");
+      return `• ${item.quantity} x ${item.name} | Talle: ${item.size}\n  Tarjeta: ${formatMoney(payment.cardTotal)} (${payment.count} cuotas de ${formatMoney(payment.perInstallment)})\n  Transferencia o efectivo: ${item.transferText}`;
+    }).join("\n");
 
     const consent = form.elements.recoveryConsent?.checked === true;
     const recoveryContact = {
