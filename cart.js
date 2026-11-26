@@ -8,6 +8,76 @@
   let cart = loadCart();
   let whatsappNumber = "";
 
+  const RECOVERY_ENDPOINT = "https://pwiakszymoicfqxvkchm.supabase.co/functions/v1/threee-recovery-track";
+  const RECOVERY_API_KEY = "sb_publishable_i0xPBsdCEkHpyNSrPlpTDw_Ku6wrXU5";
+  const RECOVERY_SESSION_KEY = "3e_recovery_session_v1";
+  const RECOVERY_STARTED_KEY = "3e_recovery_started_v1";
+  let recoveryQueue = Promise.resolve();
+
+  function makeUuid() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === "x" ? r : (r & 3 | 8)).toString(16);
+    });
+  }
+
+  function recoverySnapshot() {
+    return {
+      cart_items: cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        size: item.size,
+        quantity: item.quantity,
+        unit_price: item.transferPrice || 0
+      })),
+      cart_total: cart.reduce((sum, item) => sum + (item.transferPrice || 0) * item.quantity, 0)
+    };
+  }
+
+  function trackRecovery(eventType, contact = {}) {
+    if (!cart.length) return Promise.resolve();
+    let sessionId = localStorage.getItem(RECOVERY_SESSION_KEY);
+    if (!sessionId) {
+      sessionId = makeUuid();
+      localStorage.setItem(RECOVERY_SESSION_KEY, sessionId);
+      localStorage.removeItem(RECOVERY_STARTED_KEY);
+    }
+    const snapshot = recoverySnapshot();
+    const consent = contact.contact_opt_in === true;
+    const payload = {
+      session_id: sessionId,
+      event_type: eventType,
+      ...snapshot,
+      contact_opt_in: consent,
+      ...(consent ? {
+        customer_name: contact.customer_name || "",
+        customer_phone: contact.customer_phone || ""
+      } : {})
+    };
+    recoveryQueue = recoveryQueue.then(async () => {
+      const send = async (body) => {
+        try {
+          await fetch(RECOVERY_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": RECOVERY_API_KEY },
+            body: JSON.stringify(body),
+            keepalive: true
+          });
+        } catch (error) {
+          console.warn("No se pudo registrar el seguimiento del carrito.", error);
+        }
+      };
+      if (localStorage.getItem(RECOVERY_STARTED_KEY) !== sessionId) {
+        await send({ ...payload, event_type: "session_started", contact_opt_in: false });
+        localStorage.setItem(RECOVERY_STARTED_KEY, sessionId);
+      }
+      await send(payload);
+    });
+    return recoveryQueue;
+  }
+
   function loadCart() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -20,6 +90,7 @@
   function saveCart() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
     updateCartBadge();
+    if (cart.length) trackRecovery("cart_updated");
   }
 
   function cleanText(value) {
@@ -184,6 +255,10 @@
             </select>
           </label>
           <label class="threee-field">Observaciones<textarea name="notes" placeholder="Talles, horarios u otra información..."></textarea></label>
+          <label class="threee-field" style="display:flex;gap:9px;align-items:flex-start;line-height:1.4">
+            <input name="recoveryConsent" type="checkbox" style="width:auto;margin:2px 0 0;flex:0 0 auto">
+            <span>Acepto que 3Estrellas me contacte por WhatsApp si no termino este pedido, únicamente para ayudarme a completarlo. Es opcional.</span>
+          </label>
           <div class="threee-actions">
             <button type="button" id="threee-continue" class="threee-secondary">Seguir comprando</button>
             <button type="submit" class="threee-primary">Enviar pedido por WhatsApp</button>
@@ -203,6 +278,7 @@
   }
 
   function openCart() {
+    if (cart.length) trackRecovery("checkout_started");
     document.querySelector("#threee-cart-overlay")?.classList.add("open");
     renderCart();
   }
@@ -273,6 +349,12 @@
       `• ${item.quantity} x ${item.name} | Talle: ${item.size}\n  ${item.installmentText}\n  Transferencia: ${item.transferText}`
     ).join("\n");
 
+    const consent = form.elements.recoveryConsent?.checked === true;
+    const recoveryContact = {
+      contact_opt_in: consent,
+      customer_name: String(data.get("customerName") || ""),
+      customer_phone: String(data.get("customerPhone") || "")
+    };
     const message = [
       "¡Hola 3Estrellas! Quiero realizar este pedido:",
       "",
@@ -305,6 +387,12 @@
 
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
+    trackRecovery("checkout_submitted", recoveryContact)
+      .then(() => trackRecovery("whatsapp_opened", recoveryContact))
+      .finally(() => {
+        localStorage.removeItem(RECOVERY_SESSION_KEY);
+        localStorage.removeItem(RECOVERY_STARTED_KEY);
+      });
     cart = [];
     saveCart();
     renderCart();
